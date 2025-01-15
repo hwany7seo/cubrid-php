@@ -8,8 +8,22 @@ require_once('skipifconnectfailure.inc')
 --FILE--
 <?php
 include_once("connect.inc");
-$conn = cubrid_connect($host, $port, "demodb", $user, $passwd);
-$req = cubrid_execute($conn, "select * from public.game",  CUBRID_INCLUDE_OID);
+$conn = cubrid_connect($host, $port, "phpdb", $user, $passwd);
+
+//drop the class if exist
+$sql = "drop class if exists oidtest";
+$req = cubrid_execute($conn, $sql, CUBRID_INCLUDE_OID);
+
+//create the class
+$sql = "create table oidtest(col1 integer, col2 varchar(100)) DONT_REUSE_OID";
+$req = cubrid_execute($conn, $sql, CUBRID_INCLUDE_OID);
+
+//insert
+$sql = "insert into oidtest values(1, 'aaaaa'), (2, 'bbbbb'), (3, 'aaaaa'), (4, 'aaaaa'), (5, 'aaaaa'), (6, 'aaaaa'), (7, 'aaaaa'), (8, 'aaaaa'), (9, 'aaaaa'), (10, 'aaaaa'), (11, 'aaaaa'),(12, 'aaaaa')";
+$req = cubrid_execute($conn, $sql, CUBRID_INCLUDE_OID);
+
+
+$req = cubrid_execute($conn, "select * from oidtest",  CUBRID_INCLUDE_OID);
 if (!$req) {
     printf("[001] [%d] %s\n", cubrid_errno($conn), cubrid_error($conn));
 }
@@ -54,16 +68,16 @@ print "Finished!\n";
 --CLEAN--
 --EXPECTF--
 #####correct example#####
-public.game 
-public.game 
-public.game 
-public.game 
-public.game 
-public.game 
-public.game 
-public.game 
-public.game 
-public.game 
+public.oidtest
+public.oidtest
+public.oidtest
+public.oidtest
+public.oidtest
+public.oidtest
+public.oidtest
+public.oidtest
+public.oidtest
+public.oidtest
 
 
 #####negative example#####
