@@ -32,6 +32,13 @@ printf("#####correct example#####\n");
 //$num_row=cubrid_num_rows($req);
 for($i=1;$i<=10;$i++){
    $oid = cubrid_current_oid($req);
+   $res = cubrid_is_instance($conn, $oid);
+   if ($res == 1) {
+       printf("Intance pointed by %s exists.\n", $oid);
+   } else {
+       printf ("[003] [%d] %s\n", cubrid_errno($conn), cubrid_error($conn));
+   }
+   
    cubrid_move_cursor($req,$i,CUBRID_CURSOR_FIRST);
    $table_name = cubrid_get_class_name($conn, $oid);
    printf("%s \n",$table_name);
@@ -64,20 +71,25 @@ if(FALSE == $table_name3){
 }
 print "\n";
 print "Finished!\n";
+
+//drop the class if exist
+$sql = "drop class if exists oidtest";
+$req = cubrid_execute($conn, $sql, CUBRID_INCLUDE_OID);
+
 ?>
 --CLEAN--
 --EXPECTF--
 #####correct example#####
-public.oidtest
-public.oidtest
-public.oidtest
-public.oidtest
-public.oidtest
-public.oidtest
-public.oidtest
-public.oidtest
-public.oidtest
-public.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
 
 
 #####negative example#####
