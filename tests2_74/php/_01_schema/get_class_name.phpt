@@ -32,7 +32,6 @@ printf("#####correct example#####\n");
 //$num_row=cubrid_num_rows($req);
 for($i=1;$i<=10;$i++){
    $oid = cubrid_current_oid($req);
-  
    cubrid_move_cursor($req,$i,CUBRID_CURSOR_FIRST);
    $table_name = cubrid_get_class_name($conn, $oid);
    printf("%s \n",$table_name);
@@ -82,7 +81,6 @@ $req = cubrid_execute($conn, $sql, CUBRID_INCLUDE_OID);
 --CLEAN--
 --EXPECTF--
 #####correct example#####
-
 dba.oidtest
 dba.oidtest
 dba.oidtest
@@ -94,6 +92,7 @@ dba.oidtest
 dba.oidtest
 dba.oidtest
 Intance pointed by %s exists.
+
 
 #####negative example#####
 
