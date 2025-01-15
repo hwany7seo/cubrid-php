@@ -93,7 +93,7 @@ dba.oidtest
 dba.oidtest
 dba.oidtest
 dba.oidtest
-
+Intance pointed by %s exists.
 
 #####negative example#####
 

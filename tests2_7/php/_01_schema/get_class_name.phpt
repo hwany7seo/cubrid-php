@@ -82,17 +82,18 @@ $req = cubrid_execute($conn, $sql, CUBRID_INCLUDE_OID);
 --CLEAN--
 --EXPECTF--
 #####correct example#####
-dba.oidtest
-dba.oidtest
-dba.oidtest
-dba.oidtest
-dba.oidtest
-dba.oidtest
-dba.oidtest
-dba.oidtest
-dba.oidtest
-dba.oidtest
 
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+dba.oidtest
+Intance pointed by %s exists.
 
 #####negative example#####
 
