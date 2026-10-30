@@ -89,7 +89,10 @@ if test "$PHP_CUBRID" != "no"; then
     LDFLAGS="$LDFLAGS $CUBRID_LIBDIR/libcascci.a -lpthread $cubrid_dir/cci-src/external/openssl/lib/libssl.a $cubrid_dir/cci-src/external/openssl/lib/libcrypto.a"
 
     PHP_SUBST(CUBRID_SHARED_LIBADD)
-    if test "$PHP_MAJOR_VERSION" = "7"; then
+    if test "$PHP_MAJOR_VERSION" = "8"; then
+        AC_MSG_NOTICE([Using PHP 8.x source file: php_cubrid8.c])
+        PHP_NEW_EXTENSION(cubrid, php_cubrid8.c, $ext_shared)
+    elif test "$PHP_MAJOR_VERSION" = "7"; then
         AC_MSG_NOTICE([Using PHP 7.x source file: php_cubrid7.c])
         PHP_NEW_EXTENSION(cubrid, php_cubrid7.c, $ext_shared)
     else
