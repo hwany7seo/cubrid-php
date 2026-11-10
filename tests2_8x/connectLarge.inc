@@ -1,6 +1,6 @@
 <?php
-$host = "localhost";
-$port = 33000;
+$host = getenv("CUBRID_TEST_HOST") ? getenv("CUBRID_TEST_HOST") : "test-db-server";
+$port = ;
 $db = "largedb";
 $user = "dba";
 $passwd = "";

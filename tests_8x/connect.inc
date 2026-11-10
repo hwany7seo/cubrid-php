@@ -1,5 +1,5 @@
 <?php
-$host = "localhost";
+$host = getenv("CUBRID_TEST_HOST") ? getenv("CUBRID_TEST_HOST") : "test-db-server";
 $port = 33000;
 $db = "demodb";
 $user = "public";

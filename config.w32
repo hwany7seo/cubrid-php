@@ -4,19 +4,30 @@
 ARG_WITH("cubrid", "CUBRID support", "no");
 
 if (PHP_CUBRID != "no") {
-  cubrid_lib_paths = PHP_PHP_BUILD + "\\lib\\cubrid;";
-  cubrid_include_paths = PHP_PHP_BUILD + "\\include\\cubrid;"
+  cubrid_lib_paths = "";
+  cubrid_include_paths = "";
+  if (typeof(PHP_PHP_BUILD) != "undefined" && PHP_PHP_BUILD != "no") {
+    cubrid_lib_paths = PHP_PHP_BUILD + "\\lib\\cubrid;";
+    cubrid_include_paths = PHP_PHP_BUILD + "\\include\\cubrid;";
+  }
 
   if (PHP_CUBRID != "yes") {
     cubrid_lib_paths += PHP_CUBRID + "\\lib;";
     cubrid_include_paths += PHP_CUBRID + "\\include;";
   }
 
-  if (CHECK_LIB("cascci.lib", "cubrid", cubrid_lib_paths) && 
-      CHECK_HEADER_ADD_INCLUDE("cas_cci.h", "CFLAGS_CUBRID", cubrid_include_paths)) { 
-    EXTENSION("cubrid", "php_cubrid.c"); 
+  if (CHECK_LIB("cascci.lib", "cubrid", cubrid_lib_paths) &&
+      CHECK_HEADER_ADD_INCLUDE("cas_cci.h", "CFLAGS_CUBRID", cubrid_include_paths)) {
+    if (PHP_VERSION >= 8) {
+      EXTENSION("cubrid", "php_cubrid8.c");
+    } else if (PHP_VERSION >= 7) {
+      EXTENSION("cubrid", "php_cubrid7.c");
+    } else {
+      EXTENSION("cubrid", "php_cubrid.c");
+    }
+    ADD_FLAG("CFLAGS_CUBRID", "/D WINDOWS");
     AC_DEFINE('HAVE_CUBRID', 1, 'Have CUBRID library');
-  } else { 
+  } else {
     WARNING("cubrid not enabled; libraries and headers not found");
   }
 }

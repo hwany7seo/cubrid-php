@@ -1,0 +1,11 @@
+# out-of-tree builds made by build.sh
+/build_*/
+csql.err
+/tests2_8x/php/**/*.diff
+/tests2_8x/php/**/*.exp
+/tests2_8x/php/**/*.log
+/tests2_8x/php/**/*.out
+/tests2_8x/php/**/*.php
+/tests2_8x/php/**/*.sh
+large.txt
+tests2_8x/largedbFile/

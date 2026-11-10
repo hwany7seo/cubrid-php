@@ -1,12 +1,42 @@
 #!/bin/bash
+# usage: ./choseRunCases.sh [phppath] [-S|-L|-R] [target]
+#   phppath  directory of the php binary (default: php in PATH), e.g. ~/php/8.4/bin
+#   -S       normal cases (phpdb), -L large data cases (largedb), -R remote server,
+#            no option: all cases. target: run only this test file/directory.
+#
+# The extension under test is ../build_<ver>/modules/cubrid.so built by
+# "../build.sh <ver>" (<ver> = 83, 84, 85 from the php binary), or $CUBRID_EXT.
+# If it does not exist, the cubrid extension loaded by php.ini is used.
 set -x
+if [[ "$1" == -* ]]; then
+    phppath=""
+    mode=$1
+    target=$2
+else
+    phppath=$1
+    mode=$2
+    target=$3
+fi
+
+php=$(command -v "${phppath:+$phppath/}php") || { echo "[ERROR] php not found: $phppath" >&2; exit 1; }
+php_ver=$($php -n -r 'echo PHP_MAJOR_VERSION, PHP_MINOR_VERSION;')
+CUBRID_EXT=${CUBRID_EXT:-../build_$php_ver/modules/cubrid.so}
+if [ -f "$CUBRID_EXT" ]; then
+    php_opts="-n -d extension=$(readlink -f "$CUBRID_EXT")"
+elif $php -r 'exit(extension_loaded("cubrid") ? 0 : 1);'; then
+    php_opts=""
+else
+    echo "[ERROR] $CUBRID_EXT not found and $php has no cubrid extension. Run '../build.sh $php_ver' first." >&2
+    exit 1
+fi
+export NO_COLOR=1
 
 function runNormalCases()
 {
     echo "#####mv _16_largedata_longtime from the path PHP/php/php#####"
     mv php/_16_largedata_longtime .
     echo "##### start run test cases from _01_schema to _15_newLob#####"
-    php run-tests.php php
+    $php run-tests.php -q $php_opts -p $php php
     echo "##### finished #####"
     mv _16_largedata_longtime php
 }
@@ -15,14 +45,14 @@ function runNormalCases()
 function runLargeDataCases()
 {
     echo "#####start to run test cases about large data #####"
-    php run-tests.php php/_16_largedata_longtime
+    $php run-tests.php -q $php_opts -p $php php/_16_largedata_longtime
     echo "#####finished#####"
 }
 
 function runAll()
 {
     echo "#####start to run all test cases#####"
-    php run-tests.php php
+    $php run-tests.php -q $php_opts -p $php php | tee runall_test.log
     echo "#####finished#####"
 }
 
@@ -35,7 +65,7 @@ function modifyPort()
 
 function createDB()
 {
-	mkdir $2
+    mkdir $2
     cd $2
 
     cubrid createdb $1 en_US
@@ -44,7 +74,7 @@ function createDB()
     if [ -d ../$2_bak ]
     then
         cp -rf ../$2_bak/* ../$2
-	sleep 5
+    sleep 5
     fi
 
     cubrid server start $1
@@ -54,18 +84,23 @@ function createDB()
 
 function remote_createDB()
 {
-	ssh -f $sshuser@$sshhost -p $sshport "mkdir $2; cd $2; . ~/.cubrid.sh; cubrid createdb $1 en_US"
-	sleep 60
-	ssh -f $sshuser@$sshhost -p $sshport "if [ -d ~/largedbFile_bak ]; then cp -rf ~/largedbFile_bak/* ~/largedbFile; fi"
-	sleep 600
-	ssh -f $sshuser@$sshhost -p $sshport ". ~/.cubrid.sh; cubrid server start $1; cubrid server status"
+    ssh $sshuser@$sshhost -p $sshport "mkdir $2; cd $2; . ~/.cubrid.sh; cubrid createdb $1 en_US"
+	
+    if [ "$2" == "largedbFile" ]
+    then
+        ssh $sshuser@$sshhost -p $sshport "if [ -d ~/largedbFile_bak ]; then cp -rf ~/largedbFile_bak/* ~/largedbFile; fi"
+    fi
+	
+    ssh -f $sshuser@$sshhost -p $sshport ". ~/.cubrid.sh; cubrid server start $1; cubrid server status"
+    sleep 10
 }
 
 function remote_deleteDB()
 {
-	ssh -f $sshuser@$sshhost -p $sshport ". ~/.cubrid.sh; cubrid server stop $1"
-	sleep 60
-	ssh -f $sshuser@$sshhost -p $sshport ". ~/.cubrid.sh; cubrid deletedb $1; rm -rf $2"
+    ssh -f $sshuser@$sshhost -p $sshport ". ~/.cubrid.sh; cubrid server stop $1"
+    sleep 10
+    ssh -f $sshuser@$sshhost -p $sshport ". ~/.cubrid.sh; cubrid deletedb $1; rm -rf $2"
+    sleep 10
 }
 
 function deleteDB()
@@ -77,7 +112,7 @@ function deleteDB()
 
 ############start##########################
 #start broker 
-if [ $1 == -R ]
+if [ "$mode" == "-R" ]
 then 
 	if [ -e config.properties ]
 	then 
@@ -86,22 +121,22 @@ then
 		sshhost=`grep -r sshhost config.properties | tr -d ' ' | cut -d'=' -f2`
 		brokerport=`grep -r brokerport config.properties | tr -d ' ' | cut -d'=' -f2`
 	else
-		sshuser=id
+		sshuser=cubrid
 		sshport=22
 		sshhost=`grep -r "^\$host.*;" connect.inc | tr -d ' ;'  | cut -d'=' -f2`
 		brokerport=`grep -r "^\$port.*;" connect.inc | tr -d ' ;'  | cut -d'=' -f2`
 	fi
 
 
-	ssh -f $sshuser@$sshhost -p $sshport ". ~/.cubrid.sh; cubrid broker start"
-	ssh -f $sshuser@$sshhost -p $sshport ". ~/.cubrid.sh; cubrid server start demodb;"
+	ssh $sshuser@$sshhost -p $sshport ". ~/.cubrid.sh; cubrid broker start"
+	ssh $sshuser@$sshhost -p $sshport ". ~/.cubrid.sh; cubrid server start demodb;"
 else
 	cubrid broker start
 	cubrid server start demodb
 fi
 
 
-if [ $1 == -L ]
+if [ "$mode" == "-L" ]
 then 
     #modify file about: broker port
     modifyPort connectLarge.inc
@@ -118,14 +153,14 @@ then
     cd ..
 
     #import large data into largedb database
-    php largeTable.php
+    $php $php_opts largeTable.php
 
     #start to run test cases about large data
-    if [ "$2" == "" ]
+    if [ "$target" == "" ]
     then
     	runLargeDataCases
     else
-	php run-tests.php $2
+    $php run-tests.php -q $php_opts -p $php "$target"
     fi
 
     #deletedb
@@ -138,7 +173,7 @@ then
     rm -rf large.txt
     cd ..
 
-elif [ $1 == -S ]
+elif [ "$mode" == "-S" ]
 then 
     #modify file about: broker port
     modifyPort connect.inc 
@@ -146,33 +181,45 @@ then
     #create database
     createDB phpdb phpdbFile
 
-    if [ "$2" == "" ]
+    if [ "$target" == "" ]
     then
         #start to run test cases about large data
         runNormalCases
     else
-        php run-tests.php $2
+        $php run-tests.php -q $php_opts -p $php "$target"
     fi
     #deletedb
     deleteDB phpdb phpdbFile
     mv connect.inc.ori connect.inc
 
-elif [ $1 == -R ]
+elif [ "$mode" == "-R" ]
 then 
 	sed -i "s/^\$host.*;/\$host = \"$sshhost\";/" connect.inc
 	sed -i "s/^\$port.*;/\$port = $brokerport;/" connect.inc
 	sed -i "s/^\$host.*;/\$host = \"$sshhost\";/" connectLarge.inc
 	sed -i "s/^\$port.*;/\$port = $brokerport;/" connectLarge.inc
-	
+    
+    #delete database
+    isExistlargedb=`ssh $sshuser@$sshhost -p $sshport "if [ ! -d ~/largedbFile ]; then echo NOK; else echo OK; fi"`
+    if [ "$isExistlargedb" == "OK" ]
+    then
+        remote_deleteDB largedb largedbFile
+    fi
+
+    isExistphpdb=`ssh $sshuser@$sshhost -p $sshport "if [ ! -d ~/phpdbFile ]; then echo NOK; else echo OK; fi"`
+    if [ "$isExistphpdb" == "OK" ]
+    then
+        remote_deleteDB phpdb phpdbFile
+    fi
+
     #create database
     remote_createDB largedb largedbFile
-    sleep 20
     remote_createDB phpdb phpdbFile
-    sleep 20
 
 	#reuse largedbFile if existed.
-	reuse=`ssh -f $sshuser@$sshhost -p $sshport "if [ ! -d ~/largedbFile_bak ]; then echo NOK; else echo OK; fi"`
-	if [ $reuse == "NOK" ]
+	reuse=`ssh $sshuser@$sshhost -p $sshport "if [ ! -d ~/largedbFile_bak ]; then echo NOK; else echo OK; fi"`
+
+	if [ "$reuse" == "NOK" ]
 	then
 	    #extracting large file
 	    cd largeFile
@@ -180,10 +227,10 @@ then
 	    cd ..
 
 	    #import large data into largedb database
-	    php largeTable.php 
-        sleep 5
-	    ssh -f $sshuser@$sshhost -p $sshport "cp -rf ~/largedbFile ~/largedbFile_bak"
-        sleep 600
+	    $php $php_opts largeTable.php 
+        
+	    ssh $sshuser@$sshhost -p $sshport "cp -rf ~/largedbFile ~/largedbFile_bak"
+        
 	fi
     
     #start to run test cases about large data
@@ -206,9 +253,9 @@ else
 
     #create database
     createDB largedb largedbFile
-    sleep 2
+    
     createDB phpdb phpdbFile
-    sleep 2
+    
 
 	if [ ! -d largedbFile_bak ]
     then
@@ -218,14 +265,14 @@ else
        cd ..
 
        #import large data into largedb database
-       php largeTable.php
-       sleep 5
+       $php $php_opts largeTable.php
+       
        #rm large file
        cd largeFile
        rm -rf large.txt
        cd ..
        cp -rf largedbFile largedbFile_bak
-       sleep 5
+       
     fi
     
     #start to run test cases about large data

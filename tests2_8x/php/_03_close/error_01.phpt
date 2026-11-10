@@ -85,24 +85,19 @@ Warning: Error: DBMS, -171, Incorrect or missing password.%s in %s on line %d
 
 Warning: Undefined variable $conn in %s on line %d
 cubrid_error_code() expects exactly 0 arguments, 1 given
-[001]Expect: return value false, [0] [Incorrect or missing password.%s]
 
 Warning: Error: DBMS, -165, User "dbaa" is invalid.%s in %s on line %d
 
 Warning: Undefined variable $conn in %s on line %d
 cubrid_error_msg() expects exactly 0 arguments, 1 given
-[002]Expect: return value false, [-165] []
 
 Warning: Error: DBMS, -677, Failed to connect to database server, 'nothisdb', on the following host(s): localhost:localhost%s in %s on line %d
 cubrid_errno(): Argument #1 ($conn) must be of type resource, null given
-[003]Expect: return value false, [0] [Failed to connect to database server, 'nothisdb', on the following host(s): localhost:localhost%s]
 
 Warning: Error: DBMS, -677, Failed to connect to database server, 'demodbb', on the following host(s): localhost:localhost%s in %s on line %d
 cubrid_error(): Argument #1 ($conn) must be of type resource, null given
-[004]No Expect: return value false, [-677] []
 
-Warning: Error: DBMS, -677, Failed to connect to database server, 'phpdbd', on the following host(s): localhost:localhost%s in %s on line 40
+Warning: Error: DBMS, -677, Failed to connect to database server, 'phpdbd', on the following host(s): localhost:localhost%s in %s on line %d
 conn5: 0
 cubrid_error_code_facility() expects exactly 0 arguments, 1 given
-[005]Expect: return value false, [0] [Failed to connect to database server, 'phpdbd', on the following host(s): localhost:localhost%s]
 Finished!

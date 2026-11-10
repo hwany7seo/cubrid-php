@@ -111,7 +111,7 @@ array(3) {
     ["ACTION_TIME"]=>
     string(6) "BEFORE"
     ["ACTION"]=>
-    string(31) "update [dba.hi] set [a]=[a]-100"
+    string(58) "update [dba.hi] [dba.hi] set [dba.hi].[a]=[dba.hi].[a]-100"
     ["PRIORITY"]=>
     string(8) "0.000000"
     ["CONDITION_TIME"]=>
@@ -136,7 +136,7 @@ array(3) {
     ["ACTION_TIME"]=>
     string(6) "BEFORE"
     ["ACTION"]=>
-    string(29) "delete [dba.hi] from [dba.hi]"
+    string(38) "delete [dba.hi] from [dba.hi] [dba.hi]"
     ["PRIORITY"]=>
     string(8) "0.000000"
     ["CONDITION_TIME"]=>

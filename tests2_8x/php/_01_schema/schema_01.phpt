@@ -67,7 +67,7 @@ print "Finished!\n";
 #####positive example#####
 
 #####CUBRID_SCH_CLASS#####
-Number of class: 48
+Number of class: 84
 array(1) {
   [0]=>
   array(3) {
