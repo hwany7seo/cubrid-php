@@ -32,15 +32,12 @@
 #define PHP_CUBRID_H
 
 
-/* Allow install from PECL on PHP < 7.3 */
-#ifndef GC_ADDREF
-# define CUB_PHP_VERSION 71
-# define GC_ADDREF(p) (++GC_REFCOUNT(p))
-#else
-# define CUB_PHP_VERSION 73
+/* Supported PHP versions: 8.3 or later on Linux, 8.4 or later on Windows. */
+#if PHP_VERSION_ID < 80300
+# error "The CUBRID PHP extension requires PHP 8.3 or later"
 #endif
-#ifndef GC_DELREF
-# define GC_DELREF(p) (GC_REFCOUNT(p)--)
+#if defined(PHP_WIN32) && PHP_VERSION_ID < 80400
+# error "The CUBRID PHP extension requires PHP 8.4 or later on Windows"
 #endif
 
 #define Z_ARRLEN_P(v) zend_hash_num_elements(Z_ARRVAL_P(v))
@@ -196,10 +193,4 @@ ZEND_BEGIN_MODULE_GLOBALS(cubrid)
 #define CHECK_CONNECT(x) if ((x) == NULL) {RETURN_FALSE;}
 
 #define phpext_cubrid_ptr cubrid_module_ptr
-#define zend_rsrc_list_entry zend_resource
-#define Z_TYPE_RESOURCE(res) res.type
-#define Z_TYPE_PP(zval_pp)	Z_TYPE(**zval_pp)
-#define Z_STRLEN_PP(zval_pp)	Z_STRLEN(**zval_pp)
-#define Z_STRVAL_PP(zval_pp)	Z_STRVAL(**zval_pp)
-#define Z_RES_VAL_PP(zval_pp)	Z_RES_VAL(**zval_pp)
 #endif /* PHP_CUBRID_H */

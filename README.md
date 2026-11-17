@@ -64,7 +64,9 @@ https://www.cubrid.org/manual/en/11.0/api/php.html#installing-and-configuring-ph
 Source modules
 --------------
 
+* Supported PHP versions: PHP 8.3 or later on Linux, PHP 8.4 or later on Windows (x64).
 * Build from source in Linux require GNU Developer Toolset 8 or higher.
+* `./build.sh 83|84|85` builds out of the source tree; on Windows use `build_win.ps1 84|85`.
 ```
 $ git clone git@github.com:CUBRID/cubrid-php.git
 $ cd cubrid-php

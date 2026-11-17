@@ -71,10 +71,6 @@
 # define FALSE 0
 #endif
 
-#if PHP_MINOR_VERSION < 3
-//#define zend_parse_parameters_none() zend_parse_parameters(ZEND_NUM_ARGS(), "")
-#endif
-
 #define CUBRID_LOB_READ_BUF_SIZE    8192
 
 /* EXECUTE */
@@ -404,11 +400,11 @@ struct cubrid_lob2
 
 static void php_cubrid_init_globals(zend_cubrid_globals *cubrid_globals);
 
-static void close_cubrid_pconnect(zend_rsrc_list_entry *rsrc);
-static void close_cubrid_connect(zend_rsrc_list_entry *rsrc);
-static void close_cubrid_request(zend_rsrc_list_entry *rsrc);
-static void close_cubrid_lob(zend_rsrc_list_entry *rsrc);
-static void close_cubrid_lob2(zend_rsrc_list_entry *rsrc);
+static void close_cubrid_pconnect(zend_resource *rsrc);
+static void close_cubrid_connect(zend_resource *rsrc);
+static void close_cubrid_request(zend_resource *rsrc);
+static void close_cubrid_lob(zend_resource *rsrc);
+static void close_cubrid_lob2(zend_resource *rsrc);
 
 static void close_cubrid_request_internal(T_CUBRID_REQUEST *req);
 static void close_cubrid_lob_internal(T_CUBRID_LOB *lob);
@@ -1217,7 +1213,7 @@ ZEND_RINIT_FUNCTION(cubrid)
 	return SUCCESS;
 }
 
-static int php_cubrid_persistent_helper(zend_rsrc_list_entry *le)
+static int php_cubrid_persistent_helper(zend_resource *le)
 {
     T_CUBRID_CONNECT *connect;
     T_CCI_ERROR error;
@@ -2673,7 +2669,7 @@ ZEND_FUNCTION(cubrid_put)
 
 				data = zend_hash_get_current_data(HASH_OF(attr_value));
 
-				switch (Z_TYPE_PP(&data)) {
+				switch (Z_TYPE_P(data)) {
 				case IS_NULL:
 					value[i] = NULL;
 
@@ -2705,9 +2701,6 @@ ZEND_FUNCTION(cubrid_put)
 				case IS_OBJECT:
 				case _IS_BOOL:
 				case IS_RESOURCE:
-#if CUB_PHP_VERSION < 73
-				case IS_CONSTANT:
-#endif
 					cubrid_retval = -1;
 					handle_error(CUBRID_ER_NOT_SUPPORTED_TYPE, NULL, connect);
 					goto ERR_CUBRID_PUT;
@@ -2777,9 +2770,6 @@ ZEND_FUNCTION(cubrid_put)
 		case IS_OBJECT:
 		case _IS_BOOL:
 		case IS_RESOURCE:
-#if CUB_PHP_VERSION < 73
-		case IS_CONSTANT:
-#endif
 			cubrid_retval = -1;
 			handle_error(CUBRID_ER_NOT_SUPPORTED_TYPE, NULL, connect);
 			goto ERR_CUBRID_PUT;
@@ -5729,7 +5719,7 @@ static void php_cubrid_set_default_req_link(zend_resource *res)
     GC_ADDREF(res);
 }
 
-static void close_cubrid_connect(zend_rsrc_list_entry * rsrc)
+static void close_cubrid_connect(zend_resource * rsrc)
 {
     T_CUBRID_CONNECT *conn = (T_CUBRID_CONNECT *)rsrc->ptr;
     T_CCI_ERROR error;
@@ -5788,7 +5778,7 @@ static void close_cubrid_connect(zend_rsrc_list_entry * rsrc)
     if (conn) efree(conn);
 }
 
-static void close_cubrid_pconnect(zend_rsrc_list_entry *rsrc)
+static void close_cubrid_pconnect(zend_resource *rsrc)
 {
     T_CUBRID_CONNECT *conn = (T_CUBRID_CONNECT *)rsrc->ptr;
 
@@ -5846,7 +5836,7 @@ static void close_cubrid_request_internal(T_CUBRID_REQUEST * req)
     efree(req);
 }
 
-static void close_cubrid_request(zend_rsrc_list_entry * rsrc)
+static void close_cubrid_request(zend_resource * rsrc)
 {
 
 }
@@ -5860,14 +5850,14 @@ static void close_cubrid_lob_internal(T_CUBRID_LOB *lob)
     efree(lob);
 }
 
-static void close_cubrid_lob(zend_rsrc_list_entry * rsrc)
+static void close_cubrid_lob(zend_resource * rsrc)
 {
     T_CUBRID_LOB *lob = (T_CUBRID_LOB *)rsrc->ptr;
 
     if (lob) close_cubrid_lob_internal (lob);
 }
 
-static void close_cubrid_lob2(zend_rsrc_list_entry * rsrc)
+static void close_cubrid_lob2(zend_resource * rsrc)
 {
     T_CUBRID_LOB2 *lob = (T_CUBRID_LOB2 *)rsrc->ptr;
 
