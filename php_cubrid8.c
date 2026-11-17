@@ -2285,24 +2285,33 @@ ZEND_FUNCTION(cubrid_affected_rows)
 ZEND_FUNCTION(cubrid_close_request)
 {
     zval *req_id= NULL;
+    zend_resource *res;
 
     init_error();
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS(), "z", &req_id) == FAILURE) {
-        return;
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "r", &req_id) == FAILURE) {
+        RETURN_THROWS();
     }
-    
-    if (req_id == NULL) {
+
+    res = Z_RES_P(req_id);
+
+    /* Closing an already closed request is a no-op (PHP 7 compatible). */
+    if (res->type != le_request && res->type != -1) {
+        php_error_docref(NULL, E_WARNING, "supplied resource is not a valid CUBRID Request resource");
         RETURN_FALSE;
     }
-    if (Z_RES_P(req_id)) zend_list_delete(Z_RES_P(req_id));
 
-    /* On an explicit close of the default request it had a refcount of 2,
-    * so we need one more call */
-    if (Z_RES_P(req_id) == CUBRID_G(default_request)) {
+    /* Drop the reference held as the default request. $req_id still holds
+     * its own reference, so the resource itself is not freed here. */
+    if (res == CUBRID_G(default_request)) {
         CUBRID_G(default_request) = NULL;
-        //zend_list_delete(Z_RES_P(req_id));
+        zend_list_delete(res);
     }
+
+    /* zend_list_close() (not zend_list_delete()) does not touch the refcount owned
+     * by the PHP variables, so closing twice no longer frees a live resource. */
+    zend_list_close(res);
+
     RETURN_TRUE;
 }
 
@@ -6810,7 +6819,11 @@ static void php_cubrid_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, long type, int i
     if (is_object) {
         zval dataset = *return_value;
 
-        object_and_properties_init(return_value, ce, NULL);
+        /* Fails (and throws Error) for an abstract class, interface, trait or enum */
+        if (object_and_properties_init(return_value, ce, NULL) == FAILURE) {
+            zval_ptr_dtor(&dataset);
+            return;
+        }
         zend_merge_properties(return_value, Z_ARRVAL(dataset));
         zval_ptr_dtor(&dataset);
 

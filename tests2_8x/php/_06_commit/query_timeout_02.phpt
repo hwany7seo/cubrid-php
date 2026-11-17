@@ -177,7 +177,9 @@ int(10)
 
 
 #####negative example#####
-int(10)
+
+Warning: cubrid_get_query_timeout(): supplied resource is not a valid CUBRID Request resource in %s on line %d
+[003]Expect false,[0] [0] []
 cubrid_get_query_timeout() expects exactly 1 argument, 2 given
 [004]Expect false,[0] [0] []
 cubrid_get_query_timeout(): Argument #1 ($req_id) must be of type resource, string given
