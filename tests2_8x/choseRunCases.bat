@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 set SHELL_PATH=%~dp0
-set sshuser=cubrid
+set sshuser=hwanyseo
 set sshport=22
 set sshhost=test-db-server
 set brokerport=33000
@@ -17,7 +17,11 @@ if "%php%" == "\php.exe" (
 ) 
 
 echo "php file : %php%"
-if "%1" == "-R" (
+
+set IS_REMOTE=0
+for %%A in (-R -SR) do if "%~1"=="%%A" set IS_REMOTE=1
+
+if "%IS_REMOTE%"=="1" (
     echo "sshuser = !sshuser!"
     echo "sshhost = %sshhost%"
     echo "sshport = %sshport%"
@@ -81,6 +85,7 @@ if "%1" == "-L" (
     call :deleteDB phpdb phpdbFile
     move connect.inc.ori connect.inc
 ) else if "%1" == "-R" (
+    echo "-R option start"
     :: DeleteDB
     call :remote_deleteDB largedb largedbFile
     call :remote_deleteDB phpdb phpdbFile     
@@ -96,6 +101,23 @@ if "%1" == "-L" (
     call :remote_deleteDB largedb largedbFile
     call :remote_deleteDB phpdb phpdbFile
 
+) else if "%1" == "-SR" (
+    echo "-SR option start"
+    :: DeleteDB
+    call :remote_deleteDB phpdb phpdbFile     
+
+    :: Create database
+    call :remote_createDB phpdb phpdbFile
+
+    if "%2" == "" (
+        :: Start to run test cases about normal data
+        call :runNormalCases
+    ) else (
+        %php% run-tests.php %2
+    )
+
+    :: DeleteDB
+    call :remote_deleteDB phpdb phpdbFile
 ) else (
     :: Default is to run all test cases
     :: Modify file about: broker port

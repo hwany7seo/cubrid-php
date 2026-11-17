@@ -25,8 +25,14 @@
     Existing PHP devel pack directory (containing phpize.bat); skips the download.
 
 .PARAMETER PhpDir
-    Existing PHP directory (containing php.exe) used for the load check;
-    skips the download.
+    Existing PHP directory (containing php.exe), such as
+    D:\PHP\php-8.5.8-Win32-vs17-x64; skips the PHP download.
+    The PHP version and TS/NTS are taken from its php.exe (-ThreadSafe is not
+    needed), and the devel pack is searched for in this order:
+      - phpize.bat under <PhpDir> (e.g. the devel pack extracted to <PhpDir>\devel)
+      - a sibling directory php-devel-pack-<ver>-[nts-]Win32-vs17-x64 or
+        php-<ver>-[nts-]devel-vs17-x64 next to <PhpDir>
+    and is downloaded only for that exact version if none is found.
 
 .PARAMETER PhpSdk
     Existing php-sdk-binary-tools directory; skips the download.
@@ -41,7 +47,10 @@
     .\build_win.ps1 84
     .\build_win.ps1 85 -ThreadSafe
     .\build_win.ps1 84 -PhpVersion 8.4.14 -Clean
+    .\build_win.ps1 85 -PhpDir D:\PHP\php-8.5.8-Win32-vs17-x64
+    .\build_win.ps1 85 -PhpDir D:\PHP\php-8.5.8-nts-Win32-vs17-x64 -DevelPack D:\PHP\php-8.5.8-devel-vs17-x64 -PhpSdk D:\php-sdk
 #>
+
 param(
     [Parameter(Mandatory = $true, Position = 0)]
     [ValidateSet('84', '85')]
@@ -60,6 +69,32 @@ $ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest is very slow with
 
 $Root = $PSScriptRoot
 $PhpXY = $Target.Substring(0, 1) + '.' + $Target.Substring(1)
+
+# An existing PHP directory decides the version and TS/NTS.
+if ($PhpDir) {
+    $PhpDir = (Resolve-Path $PhpDir).Path
+    $exe = Join-Path $PhpDir 'php.exe'
+    if (-not (Test-Path $exe)) { throw "php.exe not found in $PhpDir" }
+    # No double quotes in -r: Windows PowerShell 5.1 strips them from native arguments.
+    $info = & $exe -n -r 'echo PHP_VERSION, PHP_EOL, PHP_ZTS ? 1 : 0;'
+    if ($LASTEXITCODE -ne 0 -or $info.Count -ne 2) { throw "Cannot run $exe" }
+    $exeVersion = $info[0]
+    $exeTs = $info[1] -eq '1'
+    $exeFlavor = if ($exeTs) { 'ts' } else { 'nts' }
+    if ($PSBoundParameters.ContainsKey('ThreadSafe') -and [bool]$ThreadSafe -ne $exeTs) {
+        throw "-ThreadSafe:$([bool]$ThreadSafe) does not match $exe ($exeFlavor)"
+    }
+    $ThreadSafe = [switch]$exeTs
+    if (-not $PhpVersion) {
+        # Keep the respin suffix of the directory name (php-8.4.27-1-Win32-vs17-x64).
+        $leaf = Split-Path $PhpDir -Leaf
+        if ($leaf -match "^php-($([regex]::Escape($exeVersion))(-\d+)?)-") { $PhpVersion = $Matches[1] }
+        else { $PhpVersion = $exeVersion }
+    }
+    if (-not $PhpVersion.StartsWith($exeVersion)) { throw "-PhpVersion $PhpVersion does not match $exe ($exeVersion)" }
+    Write-Host "PHP: $PhpDir ($PhpVersion, $exeFlavor)"
+}
+
 $Flavor = if ($ThreadSafe) { 'ts' } else { 'nts' }
 $WinRoot = Join-Path $Root 'build_win'
 $Downloads = Join-Path $WinRoot 'downloads'
@@ -85,8 +120,16 @@ function Import-VsEnv {
     if (-not $vs) { throw "Visual Studio 2022 (vs17) with the C++ x64 tools not found." }
     $vcvars = Join-Path $vs 'VC\Auxiliary\Build\vcvars64.bat'
     Write-Host "Visual Studio: $vs"
-    cmd /c "`"$vcvars`" >nul && set" | ForEach-Object {
-        if ($_ -match '^([^=]+)=(.*)$') { Set-Item -Path "env:$($Matches[1])" -Value $Matches[2] }
+    if ($env:VSCMD_VER -and $env:VSCMD_ARG_TGT_ARCH -eq 'x64' -and (Get-Command cl.exe -ErrorAction SilentlyContinue)) {
+        # Already loaded (e.g. a previous run in this session): running vcvars64.bat
+        # again keeps growing PATH until cmd fails with "The input line is too long".
+        Write-Host "Visual Studio environment already loaded ($env:VSCMD_VER)"
+    } else {
+        $vars = cmd /c "`"$vcvars`" >nul && set"
+        if ($LASTEXITCODE -ne 0) { throw "$vcvars failed (exit code $LASTEXITCODE). PATH may be too long; open a new shell." }
+        $vars | ForEach-Object {
+            if ($_ -match '^([^=]+)=(.*)$') { Set-Item -Path "env:$($Matches[1])" -Value $Matches[2] }
+        }
     }
     if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue)) { throw "cl.exe not found after vcvars64.bat" }
     if (-not (Get-Command cmake.exe -ErrorAction SilentlyContinue)) {
@@ -98,31 +141,63 @@ function Import-VsEnv {
     $git = Get-Command git.exe -ErrorAction SilentlyContinue
     if (-not $git) { throw "git.exe not found. Install Git for Windows." }
     $gitUsrBin = Join-Path (Split-Path (Split-Path $git.Source)) 'usr\bin'
-    if (Test-Path $gitUsrBin) { $env:PATH = "$env:PATH;$gitUsrBin" }
+    Add-PathSuffix $gitUsrBin
+}
+
+# Append directories to PATH once (the script may run several times in one session).
+function Add-PathSuffix {
+    param([string[]]$Dirs)
+    $cur = $env:PATH -split ';'
+    foreach ($d in $Dirs) {
+        if ((Test-Path $d) -and ($cur -notcontains $d)) { $env:PATH = "$env:PATH;$d"; $cur += $d }
+    }
 }
 
 function Get-Package {
     param([string]$FileName, [string[]]$Urls)
+    if (-not $FileName) { throw "Get-Package: no file name" }
     $zip = Join-Path $Downloads $FileName
     $dir = $zip -replace '\.zip$', ''
-    if (-not (Test-Path $dir)) {
-        New-Item -ItemType Directory -Force -Path $Downloads | Out-Null
+    # An empty directory is left over from an interrupted extraction.
+    if ((Test-Path $dir) -and -not (Get-ChildItem -Path $dir -Force | Select-Object -First 1)) {
+        Write-Host "Removing empty $dir"
+        Remove-Item -Recurse -Force $dir
+    }
+    if (Test-Path $dir) { return $dir }
+
+    New-Item -ItemType Directory -Force -Path $Downloads | Out-Null
+    # Download and extract into temporary names so that an interruption leaves no
+    # half-written zip or directory that a later run would take as complete.
+    $tmpZip = "$zip.partial"
+    $tmpDir = "$dir.partial"
+    foreach ($try in 1, 2) {
         if (-not (Test-Path $zip)) {
             $ok = $false
             foreach ($url in $Urls) {
                 try {
                     Write-Host "Downloading $url"
-                    Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+                    Invoke-WebRequest -Uri $url -OutFile $tmpZip -UseBasicParsing
+                    Move-Item -Force $tmpZip $zip
                     $ok = $true
                     break
                 } catch {
-                    Remove-Item -Force -ErrorAction SilentlyContinue $zip
+                    Remove-Item -Force -ErrorAction SilentlyContinue $tmpZip
                 }
             }
             if (-not $ok) { throw "Cannot download $FileName" }
         }
-        Expand-Archive -Path $zip -DestinationPath $dir
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $tmpDir
+        try {
+            Expand-Archive -Path $zip -DestinationPath $tmpDir
+            break
+        } catch {
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $tmpDir
+            if ($try -eq 2) { throw "Cannot extract ${zip}: $_" }
+            Write-Host "Cannot extract $zip ($_), downloading again"
+            Remove-Item -Force $zip
+        }
     }
+    Move-Item $tmpDir $dir
     return $dir
 }
 
@@ -169,6 +244,24 @@ Import-VsEnv
 $pkgFlavor = if ($ThreadSafe) { '' } else { 'nts-' }
 $develZip = $null
 $phpZip = $null
+if ($PhpDir -and -not $DevelPack) {
+    # A devel pack extracted inside or next to the PHP directory.
+    $candidates = @($PhpDir) + @(Get-ChildItem -Path (Split-Path $PhpDir) -Directory |
+        Where-Object { $_.Name -like "php-devel-pack-$PhpVersion-*" -or $_.Name -like "php-$PhpVersion-*devel*" } |
+        ForEach-Object { $_.FullName })
+    foreach ($c in $candidates) {
+        foreach ($p in @(Get-ChildItem -Path $c -Recurse -Depth 2 -Filter phpize.bat -ErrorAction SilentlyContinue)) {
+            # The devel pack must match the TS/NTS of php.exe.
+            $cfg = Join-Path $p.DirectoryName 'include\main\config.w32.h'
+            if (-not (Test-Path $cfg)) { continue }
+            $zts = [bool](Select-String -Path $cfg -Pattern '^\s*#\s*define\s+ZTS\s+1' -Quiet)
+            if ($zts -ne [bool]$ThreadSafe) { continue }
+            $DevelPack = $p.DirectoryName
+            break
+        }
+        if ($DevelPack) { Write-Host "Devel pack: $DevelPack"; break }
+    }
+}
 if (-not $DevelPack -or -not $PhpDir) {
     if ($PhpVersion) {
         $develZip = "php-devel-pack-$PhpVersion-${pkgFlavor}Win32-vs17-x64.zip"
@@ -185,22 +278,24 @@ if (-not $DevelPack -or -not $PhpDir) {
 }
 if ($PhpVersion -and -not $PhpVersion.StartsWith("$PhpXY.")) { throw "-PhpVersion $PhpVersion is not PHP $PhpXY" }
 if (-not $DevelPack) {
-    $DevelPack = Get-PhpPackage $develZip
+    $pkg = Get-PhpPackage $develZip
     # The zip has one top directory (php-<ver>-devel-vs17-x64).
-    $DevelPack = (Get-ChildItem -Path $DevelPack -Recurse -Filter phpize.bat | Select-Object -First 1).DirectoryName
+    $DevelPack = (Get-ChildItem -Path $pkg -Recurse -Filter phpize.bat | Select-Object -First 1).DirectoryName
+    if (-not $DevelPack) { throw "phpize.bat not found in $pkg (remove it and run again)" }
 }
 if (-not $PhpDir) {
     $PhpDir = Get-PhpPackage $phpZip
 }
 if (-not $PhpSdk) {
-    $PhpSdk = Get-Package "$PhpSdkTag.zip" @("https://github.com/php/php-sdk-binary-tools/archive/refs/tags/$PhpSdkTag.zip")
+    $pkg = Get-Package "$PhpSdkTag.zip" @("https://github.com/php/php-sdk-binary-tools/archive/refs/tags/$PhpSdkTag.zip")
     # The zip has one top directory (php-sdk-binary-tools-<tag>).
-    $PhpSdk = (Get-ChildItem -Path $PhpSdk -Recurse -Filter phpsdk_version.bat | Select-Object -First 1).Directory.Parent.FullName
+    $PhpSdk = (Get-ChildItem -Path $pkg -Recurse -Filter phpsdk_version.bat | Select-Object -First 1).Directory.Parent.FullName
+    if (-not $PhpSdk) { throw "phpsdk_version.bat not found in $pkg (remove it and run again)" }
 }
 $sdkTools = (Join-Path $PhpSdk 'bin'), (Join-Path $PhpSdk 'msys2\usr\bin')
 foreach ($d in $sdkTools) { if (-not (Test-Path $d)) { throw "$d not found (PHP SDK: $PhpSdk)" } }
 # Appended so that the MSVC tools keep precedence.
-$env:PATH = "$env:PATH;$($sdkTools -join ';')"
+Add-PathSuffix $sdkTools
 
 $phpize = Join-Path $DevelPack 'phpize.bat'
 $phpExe = Join-Path $PhpDir 'php.exe'
@@ -235,8 +330,9 @@ Copy-Item (Join-Path $CciOut 'bin\cascci.dll') $Modules
 $ext = Join-Path $Modules 'php_cubrid.dll'
 
 # Load check
-$env:PATH = "$Modules;$env:PATH"
-$loaded = & $phpExe -n -d "extension=$ext" -r 'echo phpversion("cubrid");'
+if (($env:PATH -split ';') -notcontains $Modules) { $env:PATH = "$Modules;$env:PATH" }
+# The code goes through stdin: Windows PowerShell 5.1 strips the double quotes of -r '...'.
+$loaded = '<?php echo phpversion("cubrid");' | & $phpExe -n -d "extension=$ext"
 if ($LASTEXITCODE -ne 0 -or -not $loaded) { throw "php_cubrid.dll does not load in $phpExe" }
 
 Write-Host ''
