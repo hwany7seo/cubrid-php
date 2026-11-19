@@ -10,3 +10,5 @@ csql.err
 large.txt
 tests2_8x/largedbFile/
 tests2_8x/connect.inc.ori
+tests2_8x/largedbFile_bak/
+tests2_8x/runall_test.log

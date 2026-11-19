@@ -284,12 +284,12 @@ tell: 0
 #####four#####
 
 Warning: cubrid_lob2_seek64(): offset(-11) is out of range for the lob field you have chosen, so please check the offset you give and the lob length. in %s on line 58
-55--Error:[0] []
+60--Error:[0] []
 tell: 10
 #####five#####
 
 Warning: cubrid_lob2_seek64(): offset(20000000000) is out of range for the lob field you have chosen, so please check the offset you give and the lob length. in %s on line 77
-74--Error:[0] []
+79--Error:[0] []
 tell: 10
 #####six#####
 OK
@@ -300,7 +300,7 @@ tell: 20000000000
 #####nine#####
 
 Warning: cubrid_lob2_seek64(): offset(-66) must not be a negative number, so please check the offset you give. in %s on line 131
-128--Error:[0] []
+133--Error:[0] []
 tell: 0
 #####ten#####
 cubrid_lob2_seek64(): Argument #3 ($origin) must be of type int, string given
