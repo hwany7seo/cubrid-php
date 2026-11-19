@@ -9,3 +9,4 @@ csql.err
 /tests2_8x/php/**/*.sh
 large.txt
 tests2_8x/largedbFile/
+tests2_8x/connect.inc.ori

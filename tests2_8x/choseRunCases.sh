@@ -1,6 +1,6 @@
 #!/bin/bash
-# usage: ./choseRunCases.sh [phppath] [-S|-L|-R] [target]
-#   phppath  directory of the php binary (default: php in PATH), e.g. ~/php/8.4/bin
+# usage: ./choseRunCases.sh [phppath] [-S|-L|-R] [target]   (arguments in any order)
+#   phppath  php binary or its directory (default: php in PATH), e.g. ~/php/8.4/bin/php
 #   -S       normal cases (phpdb), -L large data cases (largedb), -R remote server,
 #            no option: all cases. target: run only this test file/directory.
 #
@@ -8,17 +8,33 @@
 # "../build.sh <ver>" (<ver> = 83, 84, 85 from the php binary), or $CUBRID_EXT.
 # If it does not exist, the cubrid extension loaded by php.ini is used.
 set -x
-if [[ "$1" == -* ]]; then
-    phppath=""
-    mode=$1
-    target=$2
-else
-    phppath=$1
-    mode=$2
-    target=$3
-fi
+phppath=""
+mode=""
+target=""
+# Arguments may come in any order: an option (-S|-L|-R), a php binary or its
+# directory (a path to an executable file or a directory containing "php"),
+# and a test target (.phpt file or test directory).
+for arg in "$@"; do
+    if [[ "$arg" == -* ]]; then
+        mode=$arg
+    elif [ -z "$phppath" ] && [ -f "$arg" ] && [ -x "$arg" ]; then
+        phppath=$arg
+    elif [ -z "$phppath" ] && [ -d "$arg" ] && [ -x "$arg/php" ] && [ ! -d "$arg/php" ]; then
+        phppath=$arg
+    else
+        target=$arg
+    fi
+done
 
-php=$(command -v "${phppath:+$phppath/}php") || { echo "[ERROR] php not found: $phppath" >&2; exit 1; }
+if [ -z "$phppath" ]; then
+    php=$(command -v php)
+elif [ -d "$phppath" ]; then
+    php=$phppath/php
+else
+    php=$phppath
+fi
+[ -n "$php" ] && [ -x "$php" ] || { echo "[ERROR] php not found: $phppath" >&2; exit 1; }
+php=$(readlink -f "$php")
 php_ver=$($php -n -r 'echo PHP_MAJOR_VERSION, PHP_MINOR_VERSION;')
 CUBRID_EXT=${CUBRID_EXT:-../build_$php_ver/modules/cubrid.so}
 if [ -f "$CUBRID_EXT" ]; then
