@@ -15,3 +15,6 @@ tests2_8x/largedbFile_bak/
 tests2_8x/debug.log
 /*/*tests*.log
 .vscode/
+
+# release packages made by script/release.sh / script/release.ps1
+/release/
