@@ -4,8 +4,10 @@ setlocal enabledelayedexpansion
 set SHELL_PATH=%~dp0
 set sshuser=cubrid
 set sshport=22
-set sshhost=test-db-server
+set sshhost=127.0.0.1
 set brokerport=33000
+rem connect.inc / connectLarge.inc read the DB host from CUBRID_TEST_HOST
+if not defined CUBRID_TEST_HOST set CUBRID_TEST_HOST=%sshhost%
 set SSH_CMD=ssh -n -p %sshport% %sshuser%@%sshhost%
 rem usage: choseRunCases.bat [-S^|-L^|-R^|-SR] [phppath] [target]
 rem   phppath : directory of php.exe (default: php in PATH), e.g. D:\PHP\php-8.5.8-nts-Win32-vs17-x64
@@ -283,7 +285,15 @@ if "%1" == "largedb" (
   if "%file_check%" == "File exists" (
     echo "The file exists. so largedbFile is copied"
     %SSH_CMD% "mkdir -p largedbFile; cp -rf ~/largedbFile_bak/* ~/largedbFile"
-  ) else (
+  )
+)
+
+rem The server must be running before largeTable.php connects to it.
+call :remote_start "server start %1"
+call :error_check %ERRORLEVEL% "server start %1"
+
+if "%1" == "largedb" (
+  if not "%file_check%" == "File exists" (
     rem Extracting large file
     cd largeFile
     tar -zxvf large.tar.gz
@@ -291,19 +301,23 @@ if "%1" == "largedb" (
 
     rem Import large data into largedb database
     %PHP_RUN% largeTable.php
+    set import_rc=!ERRORLEVEL!
+    call :error_check !import_rc! "import large data"
     timeout /t 5
 
     rem Remove large file
     cd largeFile
     del large.txt
     cd ..
-    %SSH_CMD% "cp -rf ~/largedbFile ~/largedbFile_bak"
-    timeout /t 5
+    rem Back up only a complete import, and while the server is stopped so the copy is consistent.
+    if "!import_rc!" == "0" (
+      call :remote_start "server stop %1"
+      %SSH_CMD% "rm -rf ~/largedbFile_bak; cp -rf ~/largedbFile ~/largedbFile_bak"
+      call :remote_start "server start %1"
+      call :error_check !ERRORLEVEL! "server start %1"
+    )
   )
 )
-
-call :remote_start "server start %1"
-call :error_check %ERRORLEVEL% "server start %1"
 timeout /t 10
 endlocal
 exit /b
@@ -363,7 +377,7 @@ exit /b
 
 :runAll
 echo #####start to run all test cases : %php%#####
-%RUN_TESTS% php
+echo #####======%PHP_VER%_%PHP_FLAVOR%=======#####
+powershell -NoProfile -Command "& { %RUN_TESTS% php } *>&1 | Tee-Object -FilePath 'php_tests2_win_%PHP_VER%_%PHP_FLAVOR%.log'"
 echo #####finished#####
 exit /b
-

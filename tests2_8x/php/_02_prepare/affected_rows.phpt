@@ -17,6 +17,7 @@ EOD;
 cubrid_execute($conn,$sql);
 
 print("#####correct #####\n");
+/*
 $sql2="insert into php_tb values(";
 for($i = 0; $i <10000; $i++){
    $sql2 = $sql2 . $i . ",".$i . "),(";
@@ -24,7 +25,11 @@ for($i = 0; $i <10000; $i++){
 $sql2= $sql2 . 10000 . "," . 10000 . ");";
 cubrid_execute($conn,$sql2);
 $affected_num = cubrid_affected_rows();
+*/
+cubrid_execute($conn, "insert into php_tb select level-1, level-1 from db_root connect by level <= 10001");
+$affected_num = cubrid_affected_rows();
 printf("Rows inserted: %d\n", $affected_num);
+
 
 $sql3="update php_tb set id=id+100000 where id <5000";
 cubrid_execute($conn,$sql3);

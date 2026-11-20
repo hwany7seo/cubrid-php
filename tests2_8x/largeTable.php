@@ -24,9 +24,13 @@ if($retval == -1) {
     $importName=array("largeFile/large.txt");
     for($i=0; $i<count($importName); $i++){
         $lob=cubrid_lob2_new($conn, "CLOB");
-        cubrid_lob2_import($lob, $importName[$i]);
-        cubrid_lob2_bind($req, 1 , $lob, "CLOB");
-        cubrid_execute($req);
+        // Exit non-zero on failure so that the caller does not back up a broken largedb.
+        if (!cubrid_lob2_import($lob, $importName[$i])
+            || !cubrid_lob2_bind($req, 1 , $lob, "CLOB")
+            || !cubrid_execute($req)) {
+            printf("Failed to import %s: [%d] %s\n", $importName[$i], cubrid_error_code(), cubrid_error_msg());
+            exit(1);
+        }
         cubrid_lob2_close($lob);
     }
     cubrid_close_prepare($req);

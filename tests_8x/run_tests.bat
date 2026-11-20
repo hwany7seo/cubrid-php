@@ -132,5 +132,14 @@ set "TARGETS=."
 if defined HAS_TARGET set "TARGETS="
 
 set "NO_COLOR=1"
-"%PHP_BIN%" run-tests.php -q -n -d extension="%CUBRID_EXT%" -p "%PHP_BIN%" %ARGS% %TARGETS%
+rem run-tests.php prefers TEST_PHP_*_EXECUTABLE from the environment over the
+rem binaries next to -p, so a global setting (e.g. an NTS php-cgi.exe) would
+rem load the extension into a PHP of another version/flavor. Pin them to PHP_BIN.
+for %%p in ("%PHP_BIN%") do set "PHP_DIR=%%~dpp"
+set "TEST_PHP_EXECUTABLE=%PHP_BIN%"
+set "TEST_PHP_CGI_EXECUTABLE="
+set "TEST_PHPDBG_EXECUTABLE="
+if exist "%PHP_DIR%php-cgi.exe" set "TEST_PHP_CGI_EXECUTABLE=%PHP_DIR%php-cgi.exe"
+if exist "%PHP_DIR%phpdbg.exe"  set "TEST_PHPDBG_EXECUTABLE=%PHP_DIR%phpdbg.exe"
+powershell -NoProfile -Command "& { "%PHP_BIN%" run-tests.php -q -n -d extension="%CUBRID_EXT%" -p "%PHP_BIN%" %ARGS% %TARGETS% } *>&1 | Tee-Object -FilePath 'php_tests2_win_%PHP_VER%_%PHP_FLAVOR%.log'"
 exit /b %ERRORLEVEL%
