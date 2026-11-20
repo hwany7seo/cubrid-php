@@ -15,13 +15,13 @@ same way.
 
 ### Build the extension
 Build for the PHP version you want to test first. The result is
-`../build_<ver>/modules/cubrid.so`.
+`../build_linux/<ver>/modules/cubrid.so`.
 
 ```bash
 cd ..
-./build.sh 83      # uses ~/php/8.3/bin/php-config -> build_83/modules/cubrid.so
-./build.sh 84      # uses ~/php/8.4/bin/php-config -> build_84/modules/cubrid.so
-./build.sh 85      # uses php-config in PATH (8.5) -> build_85/modules/cubrid.so
+./build.sh 83      # uses ~/php/8.3/bin/php-config -> build_linux/83/modules/cubrid.so
+./build.sh 84      # uses ~/php/8.4/bin/php-config -> build_linux/84/modules/cubrid.so
+./build.sh 85      # uses php-config in PATH (8.5) -> build_linux/85/modules/cubrid.so
 ```
 
 By default `build.sh` looks for `~/php/<x.y>/bin/php-config` (the base directory can
@@ -35,13 +35,13 @@ matches. For a PHP installed elsewhere, pass `--php-config PATH`.
 | Variable | Meaning | Default |
 |---|---|---|
 | `PHP_BIN` | PHP binary used for the tests | `php` in `PATH` (currently `/usr/bin/php`, 8.5) |
-| `CUBRID_EXT` | Extension to load | `../build_<ver>/modules/cubrid.so` (`<ver>` is detected from `PHP_BIN`: 83, 84, 85) |
+| `CUBRID_EXT` | Extension to load | `../build_linux/<ver>/modules/cubrid.so` (`<ver>` is detected from `PHP_BIN`: 83, 84, 85) |
 | `CUBRID_TEST_HOST` | CUBRID broker host | `test-db-server` |
 
-Changing `PHP_BIN` is enough: the `cubrid.so` from the matching `build_<ver>` is
+Changing `PHP_BIN` is enough: the `cubrid.so` from the matching `build_linux/<ver>` is
 selected automatically. If that build does not exist, the script stops with a
 message such as
-`[ERROR] ../build_84/modules/cubrid.so not found. Run '../build.sh 84' first.`
+`[ERROR] ../build_linux/84/modules/cubrid.so not found. Run '../build.sh 84' first.`
 
 ## 3. Examples
 

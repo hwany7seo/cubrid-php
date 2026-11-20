@@ -1,4 +1,4 @@
-# out-of-tree builds made by build.sh
+# out-of-tree builds: build_linux/ (build.sh) and build_win/ (build_win.ps1)
 /build_*/
 csql.err
 /tests2_8x/php/**/*.diff

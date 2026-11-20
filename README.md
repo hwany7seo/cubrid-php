@@ -63,7 +63,7 @@ Building
 ```
 git clone --recursive https://github.com/CUBRID/cubrid-php.git
 cd cubrid-php
-./build.sh 84            # Linux, PHP 8.3/8.4/8.5 -> build_84/modules/cubrid.so
+./build.sh 84            # Linux, PHP 8.3/8.4/8.5 -> build_linux/84/modules/cubrid.so
 .\build_win.ps1 84       # Windows, PHP 8.4/8.5  -> build_win\84-nts\modules\php_cubrid.dll
 ```
 

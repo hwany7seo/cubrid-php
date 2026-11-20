@@ -13,7 +13,7 @@
 #
 # Environment
 #   PHP_BIN      PHP binary        (default: php in PATH), e.g. ~/php/8.4/bin/php
-#   CUBRID_EXT   extension to test (default: ../build_<ver>/modules/cubrid.so,
+#   CUBRID_EXT   extension to test (default: ../build_linux/<ver>/modules/cubrid.so,
 #                <ver> = 83, 84, 85 from PHP_BIN)
 
 # Parse --php-bin before cd so that relative paths are resolved from the caller's directory.
@@ -33,7 +33,7 @@ cd "$(dirname "$0")"
 PHP_BIN_ARG=${PHP_BIN:-php}
 PHP_BIN=$(command -v "$PHP_BIN_ARG") || { echo "[ERROR] php not found: $PHP_BIN_ARG" >&2; exit 1; }
 php_ver=$("$PHP_BIN" -n -r 'echo PHP_MAJOR_VERSION, PHP_MINOR_VERSION;')
-CUBRID_EXT=${CUBRID_EXT:-../build_$php_ver/modules/cubrid.so}
+CUBRID_EXT=${CUBRID_EXT:-../build_linux/$php_ver/modules/cubrid.so}
 
 if [ ! -f "$CUBRID_EXT" ]; then
     echo "[ERROR] $CUBRID_EXT not found. Run '../build.sh $php_ver' first." >&2

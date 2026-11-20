@@ -4,7 +4,7 @@
 #   -S       normal cases (phpdb), -L large data cases (largedb), -R remote server,
 #            no option: all cases. target: run only this test file/directory.
 #
-# The extension under test is ../build_<ver>/modules/cubrid.so built by
+# The extension under test is ../build_linux/<ver>/modules/cubrid.so built by
 # "../build.sh <ver>" (<ver> = 83, 84, 85 from the php binary), or $CUBRID_EXT.
 # If it does not exist, the cubrid extension loaded by php.ini is used.
 set -x
@@ -36,7 +36,7 @@ fi
 [ -n "$php" ] && [ -x "$php" ] || { echo "[ERROR] php not found: $phppath" >&2; exit 1; }
 php=$(readlink -f "$php")
 php_ver=$($php -n -r 'echo PHP_MAJOR_VERSION, PHP_MINOR_VERSION;')
-CUBRID_EXT=${CUBRID_EXT:-../build_$php_ver/modules/cubrid.so}
+CUBRID_EXT=${CUBRID_EXT:-../build_linux/$php_ver/modules/cubrid.so}
 if [ -f "$CUBRID_EXT" ]; then
     php_opts="-n -d extension=$(readlink -f "$CUBRID_EXT")"
 elif $php -r 'exit(extension_loaded("cubrid") ? 0 : 1);'; then
