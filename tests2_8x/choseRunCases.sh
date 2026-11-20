@@ -68,7 +68,7 @@ function runLargeDataCases()
 function runAll()
 {
     echo "#####start to run all test cases#####"
-    $php run-tests.php -q $php_opts -p $php php | tee runall_test.log
+    $php run-tests.php -q $php_opts -p $php php | tee php_tests2_linux_${php_ver}.log
     echo "#####finished#####"
 }
 
