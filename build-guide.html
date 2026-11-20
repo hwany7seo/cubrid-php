@@ -191,9 +191,9 @@ script/release.sh --ref &lt;version&gt; --check ~/php/8.4/bin/php-config</code><
   <li>In the packaged <code>cci-src</code> (the cci-src repository itself is not changed):
       <code>build.sh</code> does not stop when git is missing, <code>BUILD_NUMBER</code> holds the full CCI version
       (e.g. <code>11.2.0.0040-9965aa8</code>), and <code>win/</code> is left out.</li>
-  <li><code>--check</code> extracts the archive into <code>release/check</code> and builds it with
+  <li><code>--check</code> extracts the archive into <code>script/release/check</code> and builds it with
       <code>phpize; ./configure; make</code> as PIE does, then checks that the module loads.</li>
-  <li>Output: <code>release/output/</code> (ignored by git).</li>
+  <li>Output: <code>script/release/</code> (ignored by git). The same directory is used by <code>script/release.ps1</code>.</li>
 </ul>
 
 <h3>5.2 Windows binaries: script/release.ps1</h3>
@@ -214,7 +214,7 @@ script/release.sh --ref &lt;version&gt; --check ~/php/8.4/bin/php-config</code><
   <li>Update <code>PHP_CUBRID_VERSION</code> in <code>php_cubrid_version.h</code> and the release notes, and commit.</li>
   <li>Tag the commit: <code>git tag &lt;version&gt;</code>, <code>git push origin &lt;version&gt;</code>.</li>
   <li>Run <code>script/release.sh --ref &lt;version&gt; --check</code> on Linux and <code>script\release.ps1</code> on Windows (from the same tag).</li>
-  <li>Create a GitHub release for the tag and upload all files of <code>release/output</code> including the <code>.sha256</code> files.</li>
+  <li>Create a GitHub release for the tag and upload the <code>.tgz</code>, <code>.zip</code> and <code>.sha256</code> files of <code>script/release</code> including the <code>.sha256</code> files.</li>
   <li>Packagist (<code>cubrid/cubrid</code>) picks up the new tag through the GitHub webhook. Check it with
       <code>pie install cubrid/cubrid:&lt;version&gt;</code>.</li>
 </ol>

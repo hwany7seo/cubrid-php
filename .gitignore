@@ -17,4 +17,4 @@ tests2_8x/debug.log
 .vscode/
 
 # release packages made by script/release.sh / script/release.ps1
-/release/
+/script/release/

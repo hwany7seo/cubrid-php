@@ -3,8 +3,8 @@
 # Make the Linux source release of the CUBRID PHP driver.
 #
 #   script/release.sh [options]
-#     ->  release/output/php_cubrid-<version>-src.tgz
-#         release/output/php_cubrid-<version>-src.tgz.sha256
+#     ->  script/release/php_cubrid-<version>-src.tgz
+#         script/release/php_cubrid-<version>-src.tgz.sha256
 #
 # The archive is made from a committed revision (HEAD by default), together with
 # the cci-src submodule at the commit recorded in that revision, so local changes
@@ -18,10 +18,10 @@
 #
 # Options
 #   --ref REV       revision to package (default: HEAD)
-#   --output DIR    output directory (default: release/output)
+#   --output DIR    output directory (default: script/release)
 #   --check [PHP_CONFIG]
 #                   build the archive after making it: extract it into
-#                   release/check and run phpize/configure/make with PHP_CONFIG
+#                   script/release/check and run phpize/configure/make with PHP_CONFIG
 #                   the way PIE does (no --with-* option)
 #                   (default: php-config in PATH)
 #   -h, --help      show this help
@@ -62,7 +62,7 @@ fatal() { echo "[ERROR] $*" >&2; exit 1; }
 
 root_dir=$(cd "$(dirname "$0")/.." && pwd)
 ref=HEAD
-output_dir=$root_dir/release/output
+output_dir=$root_dir/script/release
 check=0
 check_php_config=""
 
@@ -122,7 +122,7 @@ cci_version=$cci_base.$cci_serial-$(git -C cci-src rev-parse --short=7 "$cci_com
 info "cci-src : $cci_version"
 
 # ---- stage ------------------------------------------------------------------
-stage_root=$root_dir/release/stage
+stage_root=$root_dir/script/release/stage
 stage=$stage_root/$name
 rm -rf "$stage_root"
 mkdir -p "$stage/cci-src"
@@ -171,7 +171,7 @@ if [ $check -eq 1 ]; then
     phpize=$(dirname "$check_php_config")/phpize
     [ -x "$phpize" ] || fatal "phpize not found next to $check_php_config"
 
-    check_dir=$root_dir/release/check
+    check_dir=$root_dir/script/release/check
     rm -rf "$check_dir"
     mkdir -p "$check_dir"
     tar -xzf "$archive" -C "$check_dir"

@@ -4,8 +4,8 @@
 
 .DESCRIPTION
     .\script\release.ps1 [options]
-        -> release\output\php_cubrid-<version>-<php x.y>-<nts|ts>-vs17-x86_64.zip
-           release\output\php_cubrid-<version>-<php x.y>-<nts|ts>-vs17-x86_64.zip.sha256
+        -> script\release\php_cubrid-<version>-<php x.y>-<nts|ts>-vs17-x86_64.zip
+           script\release\php_cubrid-<version>-<php x.y>-<nts|ts>-vs17-x86_64.zip.sha256
 
     Each target (PHP version x TS/NTS) is built with build_win.ps1 and packaged
     into one zip. <version> is PHP_CUBRID_VERSION of php_cubrid_version.h.
@@ -31,7 +31,7 @@
     Existing php-sdk-binary-tools directory, passed to build_win.ps1.
 
 .PARAMETER OutputDir
-    Output directory (default: release\output).
+    Output directory (default: script\release).
 
 .PARAMETER Clean
     Build everything from scratch (build_win.ps1 -Clean on the first target).
@@ -65,10 +65,10 @@ $Arch = 'x86_64'
 
 $Root = Split-Path $PSScriptRoot -Parent
 $BuildScript = Join-Path $Root 'build_win.ps1'
-if (-not $OutputDir) { $OutputDir = Join-Path $Root 'release\output' }
+if (-not $OutputDir) { $OutputDir = Join-Path $PSScriptRoot 'release' }
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 $OutputDir = (Resolve-Path $OutputDir).Path
-$StageRoot = Join-Path $Root 'release\stage'
+$StageRoot = Join-Path $PSScriptRoot 'release\stage'
 
 # ---- version ----------------------------------------------------------------
 $header = Get-Content (Join-Path $Root $VersionHeader) -Raw
